@@ -12,6 +12,25 @@
 
 set -euo pipefail  # Enhanced error handling
 
+# Cross-platform timeout function for macOS compatibility
+timeout_command() {
+    local duration="$1"
+    shift
+    # Convert timeout format (e.g., "10s" to "10")
+    local seconds="${duration%s}"
+    
+    if command -v timeout >/dev/null 2>&1; then
+        # Use timeout if available (Linux)
+        timeout "$duration" "$@"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        # Use gtimeout if available (macOS with coreutils)
+        gtimeout "$duration" "$@"
+    else
+        # Fallback: no timeout on macOS (just run the command)
+        "$@"
+    fi
+}
+
 # Security: Dynamic path resolution
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly CLAUDE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -237,7 +256,7 @@ process_json_context() {
     local json_context=""
     
     # Read JSON context from stdin with timeout and size limit
-    if json_context=$(timeout 10s head -c 100000 2>/dev/null); then
+    if json_context=$(timeout_command 10s head -c 100000 2>/dev/null); then
         if [[ -z "$json_context" ]]; then
             log_suggestion "WARN: Empty JSON context provided via stdin"
             return 1
@@ -275,12 +294,12 @@ process_git_files() {
     local changed_files staged_files all_files
     
     # Security: Use safe git operations with timeout
-    if ! changed_files=$(timeout 30s git diff --name-only HEAD 2>/dev/null); then
+    if ! changed_files=$(timeout_command 30s git diff --name-only HEAD 2>/dev/null); then
         log_suggestion "WARN: Failed to get git diff within timeout"
         changed_files=""
     fi
     
-    if ! staged_files=$(timeout 30s git diff --cached --name-only 2>/dev/null); then
+    if ! staged_files=$(timeout_command 30s git diff --cached --name-only 2>/dev/null); then
         log_suggestion "WARN: Failed to get git staged files within timeout"
         staged_files=""
     fi

@@ -9,6 +9,25 @@ SUCCESS=0
 VALIDATION_FAILED=1
 SYNTAX_ERROR=2
 
+# Cross-platform timeout function for macOS compatibility
+timeout_command() {
+    local duration="$1"
+    shift
+    # Convert timeout format (e.g., "10s" to "10")
+    local seconds="${duration%s}"
+    
+    if command -v timeout >/dev/null 2>&1; then
+        # Use timeout if available (Linux)
+        timeout "$duration" "$@"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        # Use gtimeout if available (macOS with coreutils)
+        gtimeout "$duration" "$@"
+    else
+        # Fallback: no timeout on macOS (just run the command)
+        "$@"
+    fi
+}
+
 # Security: Dynamic path resolution
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly CLAUDE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -287,26 +306,26 @@ run_existing_precommit() {
     fi
 }
 
-# Function to get changed files for validation
+# Function to get changed files for validation (macOS compatible)
 get_changed_files() {
-    local files=()
+    local staged_files unstaged_files all_files
     
-    # Get staged files
-    while IFS= read -r -d '' file; do
-        if [[ -f "$file" ]]; then
-            files+=("$file")
-        fi
-    done < <(git diff --cached --name-only -z 2>/dev/null)
+    # Get staged files (macOS compatible)
+    staged_files=$(git diff --cached --name-only 2>/dev/null || true)
     
-    # Get unstaged changes
-    while IFS= read -r -d '' file; do
-        if [[ -f "$file" ]]; then
-            files+=("$file")
-        fi
-    done < <(git diff --name-only -z 2>/dev/null)
+    # Get unstaged changes (macOS compatible)
+    unstaged_files=$(git diff --name-only 2>/dev/null || true)
     
-    # Remove duplicates and output
-    printf '%s\n' "${files[@]}" | sort -u
+    # Combine and filter existing files
+    all_files="$staged_files $unstaged_files"
+    
+    if [[ -n "$all_files" ]]; then
+        for file in $all_files; do
+            if [[ -f "$file" ]]; then
+                echo "$file"
+            fi
+        done | sort -u
+    fi
 }
 
 # Main validation function
@@ -324,9 +343,13 @@ main() {
         log_message "INFO" "Received JSON context: $(echo "$json_context" | head -c 100)..."
     fi
     
-    # Get list of files to validate
-    local files
-    mapfile -t files < <(get_changed_files)
+    # Get list of files to validate (macOS compatible)
+    local files=()
+    while IFS= read -r file; do
+        if [[ -n "$file" ]]; then
+            files+=("$file")
+        fi
+    done < <(get_changed_files)
     
     if [[ ${#files[@]} -eq 0 ]]; then
         log_message "INFO" "No files to validate"
