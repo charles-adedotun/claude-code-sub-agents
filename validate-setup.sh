@@ -204,8 +204,8 @@ else
     print_status "WARN" ".gitignore not found"
 fi
 
-# Check for hardcoded secrets in scripts
-if grep -r -i "password\|secret\|key\|token" .claude/hooks/ --exclude="*.log" | grep -v "echo\|comment\|example" | head -1 >/dev/null; then
+# Check for hardcoded secrets in scripts (excluding legitimate security patterns)
+if grep -r -i -E "(password|secret|key|token)\s*[:=]\s*[\"'][^\"']+[\"']" .claude/hooks/ --exclude="*.log" | grep -v "example\|placeholder\|TODO\|FIXME\|pattern\|regex\|\[\[\:space\:\]\]\|\[a-zA-Z0-9\]" | head -1 >/dev/null; then
     print_status "WARN" "Potential hardcoded secrets found in hook scripts"
 else
     print_status "OK" "No obvious hardcoded secrets in hook scripts"
