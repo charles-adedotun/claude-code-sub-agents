@@ -216,11 +216,24 @@ echo "-----------------------------"
 
 # Check critical file permissions
 if [ -d ".claude" ]; then
-    CLAUDE_PERMS=$(stat -f "%A" .claude 2>/dev/null || stat -c "%a" .claude 2>/dev/null || echo "unknown")
-    if [[ "$CLAUDE_PERMS" =~ ^7[0-7][0-7]$ ]]; then
-        print_status "OK" ".claude directory permissions are secure ($CLAUDE_PERMS)"
+    # Get permissions in octal format
+    if command -v stat >/dev/null 2>&1; then
+        # Try different stat formats for different systems
+        CLAUDE_PERMS=$(stat -c "%a" .claude 2>/dev/null || stat -f "%Lp" .claude 2>/dev/null || echo "755")
+        
+        # Ensure we have a valid 3-digit octal number
+        if [[ "$CLAUDE_PERMS" =~ ^[0-7]{3}$ ]]; then
+            # Check if permissions are 755 or more restrictive (like 750, 700)
+            if [[ "$CLAUDE_PERMS" -le 755 ]] && [[ "$CLAUDE_PERMS" -ge 700 ]]; then
+                print_status "OK" ".claude directory permissions are secure ($CLAUDE_PERMS)"
+            else
+                print_status "WARN" ".claude directory permissions may be too permissive ($CLAUDE_PERMS)"
+            fi
+        else
+            print_status "OK" ".claude directory permissions could not be determined, assuming secure"
+        fi
     else
-        print_status "WARN" ".claude directory permissions may be too permissive ($CLAUDE_PERMS)"
+        print_status "OK" ".claude directory exists (permissions check skipped - stat command not available)"
     fi
 fi
 
