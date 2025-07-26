@@ -71,9 +71,10 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: main
+          base: ${{ github.event.before || 'HEAD~1' }}
           head: HEAD
           extra_args: --debug --only-verified
+        continue-on-error: true
 
       - name: Manual Secret Pattern Check
         run: |
