@@ -69,4 +69,4 @@ Planning → Implementation → Validation → Deployment
 - **security-compliance-auditor**: Can block commits, releases & deployments
 - **sre-devops-specialist**: Controls production deployments
 
-For detailed documentation, see `.claude/AGENT_CLASSIFICATION.md`
+For detailed documentation, see `docs/AGENT_CLASSIFICATION.md`

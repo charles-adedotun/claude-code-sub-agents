@@ -8,7 +8,7 @@ TOOL_CONTEXT=$(cat)
 
 # Extract tool name and file path from the context
 TOOL_NAME=$(echo "$TOOL_CONTEXT" | jq -r '.tool_name // "unknown"')
-FILE_PATH=$(echo "$TOOL_CONTEXT" | jq -r '.parameters.file_path // .parameters[0].file_path // "unknown"')
+FILE_PATH=$(echo "$TOOL_CONTEXT" | jq -r '.parameters.file_path // "unknown"')
 
 # Only trigger for file modification tools
 case "$TOOL_NAME" in

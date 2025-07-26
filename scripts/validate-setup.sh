@@ -139,7 +139,7 @@ echo "------------------------------"
 DOCS=(
     "README.md"
     "CLAUDE.md"
-    ".claude/AGENT_CLASSIFICATION.md"
+    "docs/AGENT_CLASSIFICATION.md"
 )
 
 for doc in "${DOCS[@]}"; do

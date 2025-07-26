@@ -40,7 +40,7 @@
 - [x] **CLAUDE.md** - Claude Code specific configuration and usage
 - [x] **AGENT_CLASSIFICATION.md** - Detailed agent documentation (4000+ words)
 - [x] **LICENSE** - MIT license with proper attribution
-- [x] **validate-setup.sh** - Automated validation script
+- [x] **scripts/validate-setup.sh** - Automated validation script
 - [x] **.gitignore** - Comprehensive ignore patterns for security
 
 ### 🏗️ **Project Structure**
@@ -50,11 +50,18 @@ sub-agents/
 │   ├── agents/              # 7 specialized agents
 │   ├── hooks/              # 3 hook scripts  
 │   ├── settings.json       # Hook configuration
-│   └── AGENT_CLASSIFICATION.md
+│   └── settings.local.json
 ├── README.md               # Main documentation
 ├── CLAUDE.md              # Claude Code config
 ├── LICENSE                # MIT license
-├── validate-setup.sh      # Validation script
+├── docs/
+│   ├── AGENT_CLASSIFICATION.md  # Agent documentation
+│   ├── agents-info.md           # Agent command info
+│   ├── CONTRIBUTING.md          # Contribution guide
+│   └── reports/
+│       └── SECURITY_TESTING_REPORT.md
+├── scripts/
+│   └── validate-setup.sh        # Validation script
 └── .gitignore            # Security ignore patterns
 ```
 
@@ -96,7 +103,7 @@ sub-agents/
 
 1. **Copy the `.claude` directory** to your project root
 2. **Ensure scripts are executable**: `chmod +x .claude/hooks/*.sh`
-3. **Run validation**: `./validate-setup.sh`
+3. **Run validation**: `./scripts/validate-setup.sh`
 4. **Start using agents** - they'll auto-delegate based on file patterns
 
 ## 🔄 **Usage Workflow**

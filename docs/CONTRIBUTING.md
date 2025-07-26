@@ -12,7 +12,7 @@ Thank you for your interest in contributing to the Claude Code Sub-Agents ecosys
 
 2. **Validate Setup**
    ```bash
-   ./validate-setup.sh
+   ./scripts/validate-setup.sh
    ```
 
 3. **Create Feature Branch**
@@ -50,8 +50,8 @@ Thank you for your interest in contributing to the Claude Code Sub-Agents ecosys
 
 ### Before You Start
 1. Check existing [issues](https://github.com/charles-adedotun/claude-code-sub-agents/issues)
-2. Review the [agents-info command](.claude/commands/agents-info.md) for context
-3. Understand the [agent classification system](.claude/AGENT_CLASSIFICATION.md)
+2. Review the [agents-info command](agents-info.md) for context
+3. Understand the [agent classification system](AGENT_CLASSIFICATION.md)
 
 ### Making Changes
 
@@ -92,7 +92,7 @@ act -j your-job  # Run specific job
 ### Quality Standards
 
 #### All Contributions Must:
-- [ ] Pass `./validate-setup.sh`
+- [ ] Pass `./scripts/validate-setup.sh`
 - [ ] Include appropriate tests
 - [ ] Update relevant documentation
 - [ ] Follow security best practices
@@ -108,7 +108,7 @@ act -j your-job  # Run specific job
 
 1. **Run Validation Script**
    ```bash
-   ./validate-setup.sh
+   ./scripts/validate-setup.sh
    ```
 
 2. **Test Agent Configurations**
@@ -228,7 +228,7 @@ Fixes #456
 ### Before Submitting
 1. **Validate Changes**
    ```bash
-   ./validate-setup.sh
+   ./scripts/validate-setup.sh
    ```
 
 2. **Run Tests**
@@ -279,9 +279,9 @@ Fixes #456
 - **Pull Requests**: Code review and collaboration
 
 ### Resources
-- [Agent Classification Guide](.claude/AGENT_CLASSIFICATION.md)
-- [Agents Info Command](.claude/commands/agents-info.md)
-- [Validation Script](./validate-setup.sh)
+- [Agent Classification Guide](AGENT_CLASSIFICATION.md)
+- [Agents Info Command](agents-info.md)
+- [Validation Script](../scripts/validate-setup.sh)
 - [Quality Standards](./CLAUDE.md)
 
 ## 🤝 Community Guidelines
