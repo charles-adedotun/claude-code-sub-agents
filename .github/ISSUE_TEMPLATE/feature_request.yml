@@ -1,0 +1,142 @@
+name: ✨ Feature Request
+description: Suggest a new feature or improvement for the sub-agent ecosystem
+title: "[FEATURE] "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a new feature! Please provide details about your request.
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature are you requesting?
+      options:
+        - New sub-agent
+        - Agent capability enhancement
+        - Workflow improvement
+        - Hook script enhancement
+        - Documentation improvement
+        - CI/CD pipeline enhancement
+        - Security feature
+        - Performance improvement
+        - Developer experience
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected-agent
+    attributes:
+      label: Related Agent (if applicable)
+      description: Which sub-agent would this feature affect?
+      options:
+        - product-requirements-analyst
+        - frontend-developer
+        - backend-developer
+        - sre-devops-specialist
+        - qa-testing-specialist
+        - security-compliance-auditor
+        - pre-commit-reviewer
+        - auto-delegation system
+        - all agents
+        - not applicable
+    validations:
+      required: false
+
+  - type: textarea
+    id: problem-description
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve?
+      placeholder: Describe the problem or limitation you're experiencing...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed solution or feature
+      placeholder: How would you like this to work?
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Provide specific use cases where this feature would be valuable
+      placeholder: |
+        1. When developing X, I need to...
+        2. During deployment, it would help to...
+        3. For security reviews, this would enable...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions?
+      placeholder: What other approaches have you thought about?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority Level
+      description: How important is this feature to your workflow?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve workflow
+        - High - Significantly impacts productivity
+        - Critical - Blocking current work
+    validations:
+      required: true
+
+  - type: textarea
+    id: success-criteria
+    attributes:
+      label: Success Criteria
+      description: How would you measure the success of this feature?
+      placeholder: |
+        - [ ] Feature X works as expected
+        - [ ] Performance improves by Y%
+        - [ ] Workflow time reduces by Z minutes
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, mockups, or examples about the feature request here.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Are you willing to contribute to this feature?
+      options:
+        - label: I would be willing to implement this feature
+        - label: I would be willing to help test this feature
+        - label: I would be willing to help document this feature
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: This feature aligns with the sub-agent ecosystem goals
+          required: true
+        - label: I have considered the impact on existing workflows
+          required: true

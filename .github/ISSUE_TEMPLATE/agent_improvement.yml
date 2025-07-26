@@ -1,0 +1,129 @@
+name: 🤖 Agent Improvement
+description: Suggest improvements for a specific sub-agent
+title: "[AGENT] "
+labels: ["agent-improvement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an agent improvement! This helps us enhance the capabilities of our specialized sub-agents.
+
+  - type: dropdown
+    id: target-agent
+    attributes:
+      label: Target Agent
+      description: Which sub-agent needs improvement?
+      options:
+        - product-requirements-analyst
+        - frontend-developer
+        - backend-developer
+        - sre-devops-specialist
+        - qa-testing-specialist
+        - security-compliance-auditor
+        - pre-commit-reviewer
+    validations:
+      required: true
+
+  - type: dropdown
+    id: improvement-type
+    attributes:
+      label: Improvement Type
+      description: What type of improvement are you suggesting?
+      options:
+        - New capability/skill
+        - Enhanced existing capability
+        - Better tool integration
+        - Improved decision making
+        - Performance optimization
+        - Better error handling
+        - Enhanced workflow integration
+        - Improved quality standards
+        - Better parallel task handling
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-limitation
+    attributes:
+      label: Current Limitation
+      description: What limitation or gap does this agent currently have?
+      placeholder: Describe what the agent cannot currently do or does poorly...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-improvement
+    attributes:
+      label: Proposed Improvement
+      description: How should the agent be enhanced?
+      placeholder: Describe the specific improvement you're suggesting...
+    validations:
+      required: true
+
+  - type: textarea
+    id: workflow-impact
+    attributes:
+      label: Workflow Impact
+      description: How would this improvement affect the overall workflow?
+      placeholder: |
+        - Impact on parallel task execution
+        - Integration with other agents
+        - Effect on quality gates
+        - Changes to delegation patterns
+    validations:
+      required: true
+
+  - type: textarea
+    id: example-scenario
+    attributes:
+      label: Example Scenario
+      description: Provide a specific example of when this improvement would be valuable
+      placeholder: |
+        Current scenario: "When I ask the agent to..."
+        With improvement: "The agent would be able to..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: quality-standards
+    attributes:
+      label: Quality Standards Impact
+      description: How would this improvement affect the agent's quality standards?
+      placeholder: Any changes to blocking authority, quality gates, or success metrics?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Implementation Complexity
+      description: How complex do you think this improvement would be to implement?
+      options:
+        - Simple - Minor configuration changes
+        - Moderate - New tools or capabilities
+        - Complex - Significant agent redesign
+        - Unknown - Need technical assessment
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other relevant information about this improvement
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: validation
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following
+      options:
+        - label: I have reviewed the current agent capabilities in the documentation
+          required: true
+        - label: This improvement would enhance the sub-agent ecosystem
+          required: true
+        - label: I have considered the impact on existing workflows
+          required: true

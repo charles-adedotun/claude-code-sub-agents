@@ -1,0 +1,286 @@
+name: Release Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - '.gitignore'
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  validate:
+    name: Pre-Release Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Make validation script executable
+        run: chmod +x ./validate-setup.sh
+
+      - name: Run Agent Ecosystem Validation
+        run: ./validate-setup.sh
+
+      - name: Validate Agent Configurations
+        run: |
+          echo "🔍 Validating agent configurations..."
+          
+          # Check all required agents exist
+          REQUIRED_AGENTS=(
+            "product-requirements-analyst.md"
+            "frontend-developer.md"
+            "backend-developer.md"
+            "sre-devops-specialist.md"
+            "qa-testing-specialist.md"
+            "security-compliance-auditor.md"
+            "pre-commit-reviewer.md"
+          )
+          
+          for agent in "${REQUIRED_AGENTS[@]}"; do
+            if [[ ! -f ".claude/agents/$agent" ]]; then
+              echo "❌ Missing agent: $agent"
+              exit 1
+            fi
+            echo "✅ Found agent: $agent"
+          done
+
+      - name: Validate Hook Scripts
+        run: |
+          echo "🔍 Validating hook scripts..."
+          
+          # Check hook scripts exist and are executable
+          HOOK_SCRIPTS=(
+            "auto-delegate-agent.sh"
+            "pre-ship-workflow.sh"
+            "pre-commit-review.sh"
+          )
+          
+          for script in "${HOOK_SCRIPTS[@]}"; do
+            if [[ ! -f ".claude/hooks/$script" ]]; then
+              echo "❌ Missing hook script: $script"
+              exit 1
+            fi
+            
+            # Check syntax
+            if ! bash -n ".claude/hooks/$script"; then
+              echo "❌ Syntax error in hook script: $script"
+              exit 1
+            fi
+            
+            echo "✅ Hook script valid: $script"
+          done
+
+      - name: Security Scan - Secrets Detection
+        run: |
+          echo "🔍 Scanning for hardcoded secrets..."
+          
+          # Check for common secret patterns
+          if grep -r -i -E "(password|secret|key|token)\s*[:=]\s*[\"'][^\"']+[\"']" .claude/ --exclude="*.log" | grep -v "example\|placeholder\|TODO\|FIXME"; then
+            echo "❌ Potential hardcoded secrets found!"
+            exit 1
+          fi
+          
+          echo "✅ No hardcoded secrets detected"
+
+      - name: Validate Settings Configuration
+        run: |
+          echo "🔍 Validating settings configuration..."
+          
+          if [[ ! -f ".claude/settings.json" ]]; then
+            echo "❌ Missing settings.json"
+            exit 1
+          fi
+          
+          if ! jq empty ".claude/settings.json"; then
+            echo "❌ Invalid JSON in settings.json"
+            exit 1
+          fi
+          
+          echo "✅ Settings configuration valid"
+
+      - name: Check Commands Directory
+        run: |
+          echo "🔍 Validating commands directory..."
+          
+          if [[ ! -f ".claude/commands/agents-info.md" ]]; then
+            echo "❌ Missing agents-info command"
+            exit 1
+          fi
+          
+          echo "✅ Commands directory valid"
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Check for high/critical vulnerabilities
+        run: |
+          echo "🔍 Checking for high/critical vulnerabilities..."
+          
+          # Parse SARIF file for high/critical issues
+          if [[ -f "trivy-results.sarif" ]]; then
+            HIGH_CRITICAL=$(jq -r '.runs[0].results[] | select(.level == "error" or .ruleId | contains("HIGH") or contains("CRITICAL")) | .message.text' trivy-results.sarif 2>/dev/null || echo "")
+            
+            if [[ -n "$HIGH_CRITICAL" ]]; then
+              echo "❌ High/Critical vulnerabilities found:"
+              echo "$HIGH_CRITICAL"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ No high/critical vulnerabilities detected"
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [validate, security-scan]
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install semantic-release
+        run: |
+          npm install -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
+
+      - name: Create Release Configuration
+        run: |
+          cat > .releaserc.json << 'EOF'
+          {
+            "branches": ["main"],
+            "plugins": [
+              "@semantic-release/commit-analyzer",
+              "@semantic-release/release-notes-generator",
+              [
+                "@semantic-release/changelog",
+                {
+                  "changelogFile": "CHANGELOG.md"
+                }
+              ],
+              [
+                "@semantic-release/git",
+                {
+                  "assets": ["CHANGELOG.md"],
+                  "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+                }
+              ],
+              "@semantic-release/github"
+            ]
+          }
+          EOF
+
+      - name: Run semantic-release
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx semantic-release --dry-run
+          if npx semantic-release; then
+            echo "released=true" >> $GITHUB_OUTPUT
+            # Get the latest tag
+            TAG=$(git describe --tags --abbrev=0)
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+            echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+          else
+            echo "released=false" >> $GITHUB_OUTPUT
+          fi
+
+  post-release:
+    name: Post-Release Actions
+    runs-on: ubuntu-latest
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Create Release Artifact
+        run: |
+          mkdir -p release-artifacts
+          
+          # Create a deployment package
+          tar -czf release-artifacts/claude-code-sub-agents-${{ needs.release.outputs.version }}.tar.gz \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='release-artifacts' \
+            .
+          
+          # Create checksums
+          cd release-artifacts
+          sha256sum claude-code-sub-agents-${{ needs.release.outputs.version }}.tar.gz > checksums.txt
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.release.outputs.tag }}
+          files: |
+            release-artifacts/claude-code-sub-agents-${{ needs.release.outputs.version }}.tar.gz
+            release-artifacts/checksums.txt
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Documentation
+        run: |
+          echo "📚 Release ${{ needs.release.outputs.version }} completed successfully!"
+          echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ needs.release.outputs.tag }}"
+
+  notify:
+    name: Release Notification
+    runs-on: ubuntu-latest
+    needs: [release, post-release]
+    if: needs.release.outputs.released == 'true'
+    steps:
+      - name: Release Success Notification
+        run: |
+          echo "🎉 Successfully released claude-code-sub-agents ${{ needs.release.outputs.version }}"
+          echo "📦 Release artifacts uploaded"
+          echo "🔒 Security scans passed"
+          echo "✅ All validations completed"
