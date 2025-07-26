@@ -187,7 +187,7 @@ jobs:
 
       - name: Install semantic-release
         run: |
-          npm install -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
+          npm install -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github conventional-changelog-conventionalcommits
 
       - name: Create Release Configuration
         run: |
@@ -195,12 +195,52 @@ jobs:
           {
             "branches": ["main"],
             "plugins": [
-              "@semantic-release/commit-analyzer",
-              "@semantic-release/release-notes-generator",
+              [
+                "@semantic-release/commit-analyzer",
+                {
+                  "preset": "conventionalcommits",
+                  "releaseRules": [
+                    {"type": "feat", "release": "minor"},
+                    {"type": "fix", "release": "patch"},
+                    {"type": "perf", "release": "patch"},
+                    {"type": "revert", "release": "patch"},
+                    {"type": "docs", "release": "patch"},
+                    {"type": "style", "release": "patch"},
+                    {"type": "refactor", "release": "patch"},
+                    {"type": "test", "release": "patch"},
+                    {"type": "build", "release": "patch"},
+                    {"type": "ci", "release": "patch"},
+                    {"type": "chore", "release": false},
+                    {"scope": "no-release", "release": false},
+                    {"breaking": true, "release": "major"}
+                  ]
+                }
+              ],
+              [
+                "@semantic-release/release-notes-generator",
+                {
+                  "preset": "conventionalcommits",
+                  "presetConfig": {
+                    "types": [
+                      {"type": "feat", "section": "Features"},
+                      {"type": "fix", "section": "Bug Fixes"},
+                      {"type": "perf", "section": "Performance Improvements"},
+                      {"type": "revert", "section": "Reverts"},
+                      {"type": "docs", "section": "Documentation"},
+                      {"type": "style", "section": "Styles"},
+                      {"type": "refactor", "section": "Code Refactoring"},
+                      {"type": "test", "section": "Tests"},
+                      {"type": "build", "section": "Build System"},
+                      {"type": "ci", "section": "Continuous Integration"}
+                    ]
+                  }
+                }
+              ],
               [
                 "@semantic-release/changelog",
                 {
-                  "changelogFile": "CHANGELOG.md"
+                  "changelogFile": "CHANGELOG.md",
+                  "changelogTitle": "# Changelog\n\nAll notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines."
                 }
               ],
               [
@@ -210,7 +250,15 @@ jobs:
                   "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
                 }
               ],
-              "@semantic-release/github"
+              [
+                "@semantic-release/github",
+                {
+                  "successComment": false,
+                  "failTitle": false,
+                  "failComment": false,
+                  "releasedLabels": ["released"]
+                }
+              ]
             ]
           }
           EOF
@@ -220,15 +268,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npx semantic-release --dry-run
-          if npx semantic-release; then
-            echo "released=true" >> $GITHUB_OUTPUT
-            # Get the latest tag
-            TAG=$(git describe --tags --abbrev=0)
-            echo "tag=$TAG" >> $GITHUB_OUTPUT
-            echo "version=${TAG#v}" >> $GITHUB_OUTPUT
-          else
+          # Check if there are changes that warrant a release
+          if npx semantic-release --dry-run | grep -q "There are no relevant changes"; then
+            echo "No changes warrant a release"
             echo "released=false" >> $GITHUB_OUTPUT
+          else
+            # Run actual release
+            if npx semantic-release; then
+              echo "released=true" >> $GITHUB_OUTPUT
+              # Get the latest tag
+              TAG=$(git describe --tags --abbrev=0)
+              echo "tag=$TAG" >> $GITHUB_OUTPUT
+              echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+              echo "Release created: $TAG"
+            else
+              echo "Semantic release failed"
+              echo "released=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
           fi
 
   post-release:

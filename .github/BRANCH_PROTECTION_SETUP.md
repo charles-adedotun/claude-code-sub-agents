@@ -1,240 +1,224 @@
-# Branch Protection Configuration
+# Branch Protection Setup Guide
 
-This document provides step-by-step instructions for configuring branch protection rules for the claude-code-sub-agents repository.
+> **CRITICAL**: These branch protection rules must be configured manually in the GitHub UI to ensure proper CI/CD automation.
 
-## 🔒 Required Branch Protection Rules
+## Overview
+
+This repository uses automated releases based on conventional commits. Branch protection rules ensure that:
+- All code goes through CI validation before merging
+- Releases are triggered automatically only after successful validation
+- Manual releases are prevented (all releases must be automated)
+
+## Required Branch Protection Rules
 
 ### Main Branch Protection
 
-Navigate to your repository settings and configure the following branch protection rules for the `main` branch:
+Navigate to: `Settings > Branches > Add rule` in your GitHub repository
 
-#### Basic Protection
-- ✅ **Require a pull request before merging**
-  - ✅ Require approvals: **1**
-  - ✅ Dismiss stale PR approvals when new commits are pushed
-  - ✅ Require review from code owners
-  - ✅ Restrict pushes that create files larger than 100MB
+#### Rule Configuration
 
-#### Status Checks
-- ✅ **Require status checks to pass before merging**
-  - ✅ Require branches to be up to date before merging
-  
-  **Required Status Checks:**
-  - `validate-changes` (CI workflow)
-  - `security-analysis` (CI workflow)  
-  - `quality-checks` (CI workflow)
-  - `documentation-check` (CI workflow)
-  - `trivy-scan` (Security workflow)
-  - `secret-scan` (Security workflow)
+**Branch name pattern**: `main`
 
-#### Additional Restrictions
-- ✅ **Restrict pushes to matching branches**
-  - Add administrators and repository owners
-  - Only allow specified users/teams to push to main
-- ✅ **Allow force pushes**: ❌ (Disabled)
-- ✅ **Allow deletions**: ❌ (Disabled)
+#### Protection Settings
 
-## 🛠️ Step-by-Step Configuration
+✅ **Require a pull request before merging**
+- Required approving reviews: `1`
+- Dismiss stale PR approvals when new commits are pushed: `enabled`
+- Require review from code owners: `enabled`
+- Restrict pushes that create files larger than 100MB: `enabled`
 
-### 1. Access Repository Settings
-1. Go to your repository on GitHub
-2. Click **Settings** tab
-3. Select **Branches** from the left sidebar
+✅ **Require status checks to pass before merging**
+- Require branches to be up to date before merging: `enabled`
+- Required status checks:
+  - `validate` (Pre-Release Validation)
+  - `security-scan` (Security Scanning)
+  - `ci` (from ci.yml workflow)
+  - `security-audit` (from security-scan.yml workflow)
 
-### 2. Add Branch Protection Rule
-1. Click **Add rule**
-2. Enter branch name pattern: `main`
-3. Configure the following settings:
+✅ **Require conversation resolution before merging**
+- All PR conversations must be resolved: `enabled`
 
-### 3. Pull Request Requirements
-```
-✅ Require a pull request before merging
-  ├── ✅ Require approvals (1)
-  ├── ✅ Dismiss stale PR approvals when new commits are pushed
-  ├── ✅ Require review from code owners
-  └── ✅ Restrict pushes that create files larger than 100MB
-```
+✅ **Require signed commits**
+- All commits must be signed: `enabled`
 
-### 4. Status Check Requirements
-```
-✅ Require status checks to pass before merging
-  ├── ✅ Require branches to be up to date before merging
-  └── Required status checks:
-      ├── validate-changes
-      ├── security-analysis
-      ├── quality-checks
-      ├── documentation-check
-      ├── trivy-scan
-      └── secret-scan
-```
+✅ **Require linear history**
+- Prevent merge commits: `enabled`
+- Force push protection: `enabled`
 
-### 5. Additional Restrictions
-```
-✅ Restrict pushes to matching branches
-  ├── Include administrators: ✅
-  └── Allowed users/teams: [Repository admins only]
+✅ **Do not allow bypassing the above settings**
+- Include administrators: `enabled`
+- Restrict pushes that create new files: `enabled`
 
-❌ Allow force pushes: Disabled
-❌ Allow deletions: Disabled
-```
+#### Advanced Settings
 
-## 🔐 CODEOWNERS Configuration
+✅ **Lock branch**
+- Allow specified actors to push to this branch: `disabled`
 
-Create a `.github/CODEOWNERS` file to define code review requirements:
+✅ **Allow force pushes**
+- Nobody: `selected`
+
+✅ **Allow deletions**
+- Nobody: `selected`
+
+## Validation Commands
+
+After setting up branch protection, validate the configuration:
 
 ```bash
-# Global owners
-* @charles-adedotun
+# Check branch protection status
+gh api repos/:owner/:repo/branches/main/protection
 
-# Agent configurations require specialized review
-/.claude/agents/ @charles-adedotun
-/.claude/hooks/ @charles-adedotun
+# Test that direct pushes are blocked
+git push origin main  # Should fail
 
-# CI/CD changes require infrastructure review
-/.github/workflows/ @charles-adedotun
-
-# Security-sensitive files require security review
-/.github/workflows/security-scan.yml @charles-adedotun
-/validate-setup.sh @charles-adedotun
-
-# Documentation changes
-/*.md @charles-adedotun
-/.claude/commands/ @charles-adedotun
+# Test that unprotected branches can be pushed
+git checkout -b test-branch
+git push origin test-branch  # Should succeed
 ```
 
-## 🚨 Emergency Access Procedures
+## Automated Release Workflow
 
-### Break Glass Procedures
-1. **Critical Security Issue**: Administrators can temporarily disable branch protection
-2. **Production Incident**: Emergency hotfix process bypasses some checks
-3. **CI/CD Failure**: Temporary status check bypass for infrastructure issues
+With branch protection enabled, the proper workflow becomes:
 
-### Emergency Access Steps
-1. Document the emergency in an issue
-2. Temporarily adjust branch protection settings
-3. Implement fix with expedited review
-4. Restore full branch protection
-5. Conduct post-incident review
+### 1. Development Flow
+```bash
+# Create feature branch
+git checkout -b feat/new-feature
 
-## 📋 Verification Checklist
+# Make changes with conventional commits
+git commit -m "feat: add new agent delegation system"
+git commit -m "docs: update setup instructions"
+git commit -m "fix: resolve memory leak in hook processing"
 
-After configuration, verify the following:
-
-### Protection Rules Active
-- [ ] Pull requests required for main branch
-- [ ] At least 1 approval required
-- [ ] All status checks must pass
-- [ ] Branch must be up to date
-- [ ] Direct pushes to main blocked
-
-### Status Checks Working
-- [ ] CI workflows trigger on PR creation
-- [ ] Security scans complete successfully
-- [ ] Quality checks validate configurations
-- [ ] Documentation checks pass
-
-### Emergency Procedures
-- [ ] CODEOWNERS file properly configured
-- [ ] Emergency access procedures documented
-- [ ] Administrator privileges properly set
-
-## 🔄 Workflow Integration
-
-### PR Creation Workflow
-```
-1. Developer creates feature branch
-2. Developer opens pull request
-3. Automated CI checks run:
-   ├── Configuration validation
-   ├── Security scanning
-   ├── Quality checks
-   └── Documentation validation
-4. Required approvals obtained
-5. Status checks pass
-6. PR merged to main
-7. Release pipeline triggers
+# Push and create PR
+git push origin feat/new-feature
+gh pr create --title "feat: add new agent delegation system"
 ```
 
-### Status Check Details
+### 2. Review & Merge Flow
+```bash
+# Reviewer approves PR
+# All status checks pass automatically
+# Merge via GitHub UI (squash and merge recommended)
+```
 
-#### CI Workflow Checks
-- **validate-changes**: Agent configs, hook scripts, settings validation
-- **security-analysis**: Trivy scan, secret detection, permissions check
-- **quality-checks**: ShellCheck, YAML lint, markdown links, agent consistency
-- **documentation-check**: Required docs present, quality validation
+### 3. Automated Release Flow
+```bash
+# After merge to main:
+# 1. release.yml workflow triggers automatically
+# 2. Validates all systems
+# 3. Runs security scans  
+# 4. Analyzes commits using conventional commits
+# 5. Determines version bump (major.minor.patch)
+# 6. Creates release automatically
+# 7. Updates CHANGELOG.md
+# 8. Creates release artifacts
+```
 
-#### Security Workflow Checks
-- **trivy-scan**: Vulnerability scanning
-- **secret-scan**: Hardcoded secret detection
-- **dependency-scan**: Package vulnerability checks (if applicable)
-- **compliance-check**: Repository compliance and file permissions
+## Commit Message Standards
 
-## 🎯 Quality Gates
+For automated releases to work properly, all commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
 
-### Blocking Conditions
-The following conditions will block PR merging:
+### Format
+```
+<type>[optional scope]: <description>
 
-#### Security Issues
-- High/Critical vulnerabilities detected
-- Hardcoded secrets found
-- Insecure file permissions
-- Security policy violations
+[optional body]
 
-#### Quality Issues
-- Agent configuration validation failures
-- Hook script syntax errors
-- Missing required documentation
-- Broken internal links
+[optional footer(s)]
+```
 
-#### CI/CD Issues
-- Workflow syntax errors
-- Failed status checks
-- Missing required approvals
-- Outdated branch
+### Release Types
+- `feat:` → Minor version bump (1.0.0 → 1.1.0)
+- `fix:` → Patch version bump (1.0.0 → 1.0.1)
+- `perf:` → Patch version bump
+- `docs:` → Patch version bump
+- `style:` → Patch version bump
+- `refactor:` → Patch version bump
+- `test:` → Patch version bump
+- `build:` → Patch version bump
+- `ci:` → Patch version bump
+- `chore:` → No release
+- `BREAKING CHANGE:` → Major version bump (1.0.0 → 2.0.0)
 
-## 📊 Monitoring and Metrics
+### Examples
+```bash
+# Minor release
+git commit -m "feat: add new security scanning agent"
 
-### Key Metrics to Track
-- PR merge success rate
-- Time from PR creation to merge
-- Security scan failure rate
-- Quality check failure rate
-- Emergency procedure usage
+# Patch release  
+git commit -m "fix: resolve race condition in hook execution"
 
-### Reporting
-- Weekly branch protection effectiveness report
-- Monthly security scanning summary
-- Quarterly quality metrics review
-- Annual emergency access audit
+# Major release
+git commit -m "feat!: redesign agent configuration system
 
-## 🔧 Troubleshooting
+BREAKING CHANGE: agent configuration file format has changed"
 
-### Common Issues
+# No release
+git commit -m "chore: update development dependencies"
+```
 
-#### Status Checks Not Running
-1. Verify workflow files are present
-2. Check branch name patterns in workflows
-3. Ensure proper permissions in workflow files
-4. Validate YAML syntax
+## Manual Release Prevention
 
-#### Required Checks Failing
-1. Review CI workflow logs
-2. Check agent configuration validity
-3. Verify security scan results
-4. Validate documentation completeness
+**NEVER create releases manually using:**
+- `gh release create`
+- GitHub UI release creation
+- Git tags without conventional commits
 
-#### Emergency Access Needed
-1. Create emergency issue
-2. Contact repository administrators
-3. Follow documented procedures
-4. Restore protections after resolution
+The automated system will:
+1. Detect manual releases and may conflict
+2. Skip automated releases if tags already exist
+3. Break the conventional commit versioning system
 
-### Support Contacts
-- **Repository Issues**: Create GitHub issue
-- **Security Concerns**: Contact security team
-- **CI/CD Problems**: Infrastructure team
-- **Emergency Access**: Repository administrators
+## Troubleshooting
 
----
+### Release Not Created After Merge
+```bash
+# Check if commits follow conventional format
+git log --oneline main
 
-**Note**: These branch protection rules ensure the integrity and security of the claude-code-sub-agents ecosystem while maintaining development velocity through automated quality gates.
+# Check workflow status
+gh run list --workflow=release.yml
+
+# View workflow logs
+gh run view <run-id> --log
+```
+
+### Status Checks Failing
+```bash
+# Check required status checks
+gh api repos/:owner/:repo/branches/main/protection/required_status_checks
+
+# Re-run failed checks
+gh run rerun <run-id>
+```
+
+### Emergency Hotfix Process
+```bash
+# Create hotfix branch from main
+git checkout -b hotfix/critical-security-fix main
+
+# Make minimal fix with conventional commit
+git commit -m "fix: patch critical security vulnerability CVE-2024-xxxxx"
+
+# Create PR with expedited review
+gh pr create --title "hotfix: critical security patch" --label "urgent"
+
+# After merge, automated release will create patch version
+```
+
+## Security Considerations
+
+- Branch protection prevents direct pushes to main
+- All changes require PR review and CI validation
+- Security scans must pass before any release
+- Signed commits ensure authenticity
+- Automated releases prevent human error in security-critical releases
+
+## Next Steps
+
+1. ✅ Configure branch protection rules as specified above
+2. ✅ Test the workflow with a feature branch
+3. ✅ Validate automated release creation
+4. ✅ Train team on conventional commit standards
+5. ✅ Document any repository-specific customizations
