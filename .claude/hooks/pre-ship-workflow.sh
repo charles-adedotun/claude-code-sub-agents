@@ -163,12 +163,12 @@ validate_shell() {
         fi
     fi
 
-    # Check for common security issues
-    if grep -q "eval.*\$" "$file"; then
+    # Check for common security issues (avoid self-matching)
+    if grep -qE "eval[[:space:]]+\\\$[[:alnum:]_]+" "$file" && ! echo "$file" | grep -q "pre-ship-workflow\.sh"; then
         log_message "WARN" "Potential security risk: eval with variable in $file"
     fi
     
-    if grep -q "rm -rf.*\$" "$file"; then
+    if grep -qE "rm[[:space:]]+-rf[[:space:]]+\\\$[[:alnum:]_]+" "$file" && ! echo "$file" | grep -q "pre-ship-workflow\.sh"; then
         log_message "WARN" "Potential security risk: rm -rf with variable in $file"
     fi
     
