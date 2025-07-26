@@ -220,6 +220,29 @@ The system integrates seamlessly with GitPlus for automated deployments:
 # 5. Monitor deployment health
 ```
 
+### Automated Release Management
+The project uses **100% automated releases** based on conventional commits:
+
+```bash
+# Proper development workflow
+git checkout -b feat/new-feature
+git commit -m "feat: add new agent capability"
+git push origin feat/new-feature
+
+# After PR review and merge to main:
+# → Automated release pipeline triggers
+# → Semantic version calculated from commits  
+# → Release created automatically
+# → No manual intervention required
+```
+
+**CRITICAL**: Never create manual releases using:
+- `gh release create` (breaks automation)
+- GitHub UI release creation (conflicts with semantic versioning)
+- Manual git tags (disrupts conventional commit flow)
+
+All releases must follow [Conventional Commits](https://www.conventionalcommits.org/) and be created automatically by the CI/CD pipeline. See [Branch Protection Setup](./.github/BRANCH_PROTECTION_SETUP.md) for configuration details.
+
 ### Monitoring & Observability
 - **Real-time Monitoring**: System health and performance metrics
 - **Alerting**: Proactive alerting on quality and security issues
