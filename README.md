@@ -57,7 +57,7 @@ Agents work automatically through intelligent delegation, or you can invoke them
 
 ### 3. Configuration
 Review and customize the agent configuration in:
-- `.claude/AGENT_CLASSIFICATION.md` - Complete agent documentation
+- `docs/AGENT_CLASSIFICATION.md` - Complete agent documentation
 - `.claude/settings.json` - Hook configuration
 - `.claude/agents/` - Individual agent configurations
 
@@ -254,7 +254,7 @@ All releases must follow [Conventional Commits](https://www.conventionalcommits.
 1. Create agent configuration in `.claude/agents/[agent-name].md`
 2. Follow the established agent structure and documentation patterns
 3. Add file pattern matching in `.claude/hooks/auto-delegate-agent.sh`
-4. Update `.claude/AGENT_CLASSIFICATION.md` with agent details
+4. Update `docs/AGENT_CLASSIFICATION.md` with agent details
 
 ### Customizing Workflows
 1. Modify hook configurations in `.claude/settings.json`
@@ -263,7 +263,7 @@ All releases must follow [Conventional Commits](https://www.conventionalcommits.
 
 ## 📚 Documentation
 
-- **[Agent Classification Guide](.claude/AGENT_CLASSIFICATION.md)** - Comprehensive agent documentation
+- **[Agent Classification Guide](docs/AGENT_CLASSIFICATION.md)** - Comprehensive agent documentation
 - **[Hook System Documentation](.claude/hooks/)** - Hook implementation details
 - **[Agent Configurations](.claude/agents/)** - Individual agent specifications
 

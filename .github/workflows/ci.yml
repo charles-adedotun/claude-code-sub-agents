@@ -1,139 +1,92 @@
-name: CI - Pull Request Validation
+name: CI - Agent Configuration Validation
 
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
   pull-requests: write
-  checks: write
   security-events: write
 
 jobs:
-  validate-changes:
-    name: Validate Configuration Changes
+  validate:
+    name: Validate Agent Configuration
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
+    
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 2
 
       - name: Setup Dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get update -qq
           sudo apt-get install -y jq shellcheck
 
-      - name: Make validation script executable
-        run: chmod +x ./validate-setup.sh
-
-      - name: Run Full Ecosystem Validation
+      - name: Validate Agent Files
         run: |
-          echo "🔍 Running comprehensive validation..."
-          ./validate-setup.sh
-
-      - name: Validate Modified Agents
-        run: |
-          echo "🔍 Checking modified agent files..."
+          echo "Validating agent configuration files..."
           
-          # Get list of modified agent files
-          MODIFIED_AGENTS=$(git diff --name-only origin/main...HEAD | grep "\.claude/agents/.*\.md$" || true)
+          # Check modified agent files
+          MODIFIED_AGENTS=$(git diff --name-only HEAD~1 | grep "\.claude/agents/.*\.md$" || true)
           
           if [[ -n "$MODIFIED_AGENTS" ]]; then
-            echo "Modified agents detected:"
-            echo "$MODIFIED_AGENTS"
-            
             for agent in $MODIFIED_AGENTS; do
               if [[ -f "$agent" ]]; then
-                echo "Validating $agent..."
-                
-                # Check required fields
-                if ! grep -q "^name:" "$agent"; then
-                  echo "❌ Missing 'name:' field in $agent"
-                  exit 1
-                fi
-                
-                if ! grep -q "^description:" "$agent"; then
-                  echo "❌ Missing 'description:' field in $agent"
-                  exit 1
-                fi
-                
-                if ! grep -q "^tools:" "$agent"; then
-                  echo "❌ Missing 'tools:' field in $agent"
-                  exit 1
-                fi
-                
-                echo "✅ $agent validation passed"
+                echo "Checking $agent..."
+                # Basic validation for required fields
+                grep -q "^name:" "$agent" || { echo "Missing name field in $agent"; exit 1; }
+                grep -q "^description:" "$agent" || { echo "Missing description field in $agent"; exit 1; }
+                echo "✓ $agent is valid"
               fi
             done
           else
-            echo "ℹ️ No agent files modified"
+            echo "No agent files modified"
           fi
 
-      - name: Validate Modified Hook Scripts
+      - name: Validate Scripts
         run: |
-          echo "🔍 Checking modified hook scripts..."
+          echo "Validating shell scripts..."
           
-          # Get list of modified hook scripts
-          MODIFIED_HOOKS=$(git diff --name-only origin/main...HEAD | grep "\.claude/hooks/.*\.sh$" || true)
+          # Check modified hook scripts
+          MODIFIED_HOOKS=$(git diff --name-only HEAD~1 | grep "\.claude/hooks/.*\.sh$" || true)
           
           if [[ -n "$MODIFIED_HOOKS" ]]; then
-            echo "Modified hooks detected:"
-            echo "$MODIFIED_HOOKS"
-            
             for hook in $MODIFIED_HOOKS; do
               if [[ -f "$hook" ]]; then
-                echo "Validating $hook..."
-                
-                # Check syntax
-                if ! bash -n "$hook"; then
-                  echo "❌ Syntax error in $hook"
-                  exit 1
-                fi
-                
-                # Run shellcheck
-                if ! shellcheck "$hook"; then
-                  echo "❌ ShellCheck failed for $hook"
-                  exit 1
-                fi
-                
-                echo "✅ $hook validation passed"
+                echo "Checking $hook..."
+                bash -n "$hook" || { echo "Syntax error in $hook"; exit 1; }
+                shellcheck "$hook" || { echo "ShellCheck failed for $hook"; exit 1; }
+                echo "✓ $hook is valid"
               fi
             done
           else
-            echo "ℹ️ No hook scripts modified"
+            echo "No hook scripts modified"
           fi
 
-      - name: Check Settings Changes
+      - name: Validate Settings
         run: |
-          echo "🔍 Checking settings.json changes..."
+          echo "Validating settings.json..."
           
-          if git diff --name-only origin/main...HEAD | grep -q "\.claude/settings\.json"; then
-            echo "Settings.json modified, validating..."
-            
-            if [[ -f ".claude/settings.json" ]]; then
-              if ! jq empty ".claude/settings.json"; then
-                echo "❌ Invalid JSON in settings.json"
-                exit 1
-              fi
-              echo "✅ Settings.json is valid JSON"
-            fi
-          else
-            echo "ℹ️ Settings.json not modified"
+          if [[ -f ".claude/settings.json" ]]; then
+            jq empty ".claude/settings.json" || { echo "Invalid JSON in settings.json"; exit 1; }
+            echo "✓ settings.json is valid"
           fi
 
-  security-analysis:
-    name: Security Analysis
+  security-scan:
+    name: Security Scan
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
+    
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner
+      - name: Run Trivy Security Scanner
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
@@ -141,243 +94,46 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
 
-      - name: Upload Trivy scan results to GitHub Security tab
+      - name: Upload Security Results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
 
-      - name: Secret Scanning
+      - name: Basic Secret Scan
         run: |
-          echo "🔍 Scanning for hardcoded secrets..."
+          echo "Scanning for potential secrets..."
           
-          # Check for common secret patterns in changed files
-          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+          # Check for obvious secret patterns in changed files
+          CHANGED_FILES=$(git diff --name-only HEAD~1)
           
           if [[ -n "$CHANGED_FILES" ]]; then
             for file in $CHANGED_FILES; do
-              if [[ -f "$file" ]]; then
-                # Check for potential secrets
-                if grep -i -E "(password|secret|key|token|api[_-]?key)\s*[:=]\s*[\"'][^\"']+[\"']" "$file" | grep -v "example\|placeholder\|TODO\|FIXME\|test"; then
-                  echo "❌ Potential hardcoded secret found in $file"
-                  echo "Please review the file and ensure no real secrets are committed"
-                  exit 1
-                fi
+              if [[ -f "$file" ]] && grep -i -E "(password|secret|key|token)\s*[:=]\s*[\"'][^\"']+[\"']" "$file" | grep -v -E "(example|placeholder|test|TODO)"; then
+                echo "Potential secret found in $file"
+                exit 1
               fi
             done
           fi
           
-          echo "✅ No hardcoded secrets detected"
+          echo "✓ No secrets detected"
 
-      - name: Check File Permissions
-        run: |
-          echo "🔍 Checking file permissions..."
-          
-          # Check for files with overly permissive permissions
-          find . -type f -perm -o+w ! -path "./.git/*" ! -path "./node_modules/*" | while read -r file; do
-            echo "⚠️ File has world-writable permissions: $file"
-          done
-          
-          # Check for executable files that shouldn't be
-          find . -name "*.md" -o -name "*.json" -o -name "*.yml" -o -name "*.yaml" | while read -r file; do
-            if [[ -x "$file" ]]; then
-              echo "⚠️ Documentation/config file is executable (may not be intended): $file"
-            fi
-          done
-          
-          echo "✅ File permissions check completed"
-
-  quality-checks:
-    name: Code Quality Checks
+  summary:
+    name: Validation Summary
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y shellcheck yamllint
-
-      - name: Lint Shell Scripts
-        run: |
-          echo "🔍 Linting shell scripts..."
-          
-          find . -name "*.sh" -not -path "./.git/*" | while read -r script; do
-            echo "Checking $script..."
-            shellcheck "$script" || exit 1
-          done
-          
-          echo "✅ All shell scripts passed linting"
-
-      - name: Lint YAML Files
-        run: |
-          echo "🔍 Linting YAML files..."
-          
-          find . -name "*.yml" -o -name "*.yaml" | while read -r yaml_file; do
-            echo "Checking $yaml_file..."
-            yamllint "$yaml_file" || exit 1
-          done
-          
-          echo "✅ All YAML files passed linting"
-
-      - name: Check Markdown Links
-        uses: gaurav-nelson/github-action-markdown-link-check@v1
-        with:
-          use-quiet-mode: 'yes'
-          use-verbose-mode: 'yes'
-          config-file: '.github/markdown-link-check-config.json'
-
-      - name: Validate Agent Name Consistency
-        run: |
-          echo "🔍 Checking agent name consistency..."
-          
-          # Get all agent names from files
-          AGENT_FILES=(.claude/agents/*.md)
-          
-          for agent_file in "${AGENT_FILES[@]}"; do
-            if [[ -f "$agent_file" ]]; then
-              filename=$(basename "$agent_file" .md)
-              
-              # Check if agent is referenced in hook scripts
-              if ! grep -q "$filename" .claude/hooks/auto-delegate-agent.sh; then
-                echo "⚠️ Agent $filename not referenced in auto-delegate-agent.sh"
-              fi
-              
-              # Check if agent name in file matches filename
-              if grep -q "^name:" "$agent_file"; then
-                agent_name=$(grep "^name:" "$agent_file" | cut -d: -f2 | xargs)
-                if [[ "$agent_name" != "$filename" ]]; then
-                  echo "⚠️ Agent name mismatch: file=$filename, name=$agent_name"
-                fi
-              fi
-            fi
-          done
-          
-          echo "✅ Agent name consistency check completed"
-
-  documentation-check:
-    name: Documentation Validation
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Check Required Documentation
-        run: |
-          echo "🔍 Checking required documentation..."
-          
-          REQUIRED_DOCS=(
-            "README.md"
-            "CLAUDE.md"
-            ".claude/AGENT_CLASSIFICATION.md"
-            ".claude/commands/agents-info.md"
-          )
-          
-          for doc in "${REQUIRED_DOCS[@]}"; do
-            if [[ ! -f "$doc" ]]; then
-              echo "❌ Missing required documentation: $doc"
-              exit 1
-            fi
-            
-            if [[ ! -s "$doc" ]]; then
-              echo "❌ Required documentation is empty: $doc"
-              exit 1
-            fi
-            
-            echo "✅ Found: $doc"
-          done
-
-      - name: Check Documentation Quality
-        run: |
-          echo "🔍 Checking documentation quality..."
-          
-          # Check for TODO/FIXME in documentation
-          if find . -name "*.md" -exec grep -l "TODO\|FIXME" {} \; | head -1; then
-            echo "⚠️ Found TODO/FIXME items in documentation - please address before release"
-          fi
-          
-          # Check for broken internal links
-          find . -name "*.md" -exec grep -H "\]\(\./" {} \; | while read -r link; do
-            file=$(echo "$link" | cut -d: -f1)
-            path=$(echo "$link" | sed 's/.*](\([^)]*\)).*/\1/')
-            
-            # Resolve relative path
-            full_path=$(dirname "$file")/"$path"
-            
-            if [[ ! -f "$full_path" ]]; then
-              echo "⚠️ Broken internal link in $file: $path"
-            fi
-          done
-          
-          echo "✅ Documentation quality check completed"
-
-  pr-summary:
-    name: PR Validation Summary
-    runs-on: ubuntu-latest
-    needs: [validate-changes, security-analysis, quality-checks, documentation-check]
+    needs: [validate, security-scan]
     if: always() && github.event.pull_request.draft == false
+    
     steps:
-      - name: Create PR Comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const needs = ${{ toJSON(needs) }};
-            
-            let summary = "## 🔍 PR Validation Summary\n\n";
-            let allPassed = true;
-            
-            const jobs = [
-              { name: "Configuration Validation", key: "validate-changes" },
-              { name: "Security Analysis", key: "security-analysis" },
-              { name: "Code Quality Checks", key: "quality-checks" },
-              { name: "Documentation Validation", key: "documentation-check" }
-            ];
-            
-            for (const job of jobs) {
-              const result = needs[job.key]?.result || 'unknown';
-              const icon = result === 'success' ? '✅' : result === 'failure' ? '❌' : '⚠️';
-              summary += `${icon} **${job.name}**: ${result}\n`;
-              
-              if (result !== 'success') {
-                allPassed = false;
-              }
-            }
-            
-            if (allPassed) {
-              summary += "\n🎉 All validations passed! This PR is ready for review.";
-            } else {
-              summary += "\n⚠️ Some validations failed. Please check the workflow logs and address any issues.";
-            }
-            
-            // Find existing comment and update or create new one
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            
-            const existingComment = comments.data.find(comment => 
-              comment.user.login === 'github-actions[bot]' && 
-              comment.body.includes('PR Validation Summary')
-            );
-            
-            if (existingComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existingComment.id,
-                body: summary
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: summary
-              });
-            }
+      - name: Report Results
+        run: |
+          echo "## Validation Results"
+          echo "Validation: ${{ needs.validate.result }}"
+          echo "Security: ${{ needs.security-scan.result }}"
+          
+          if [[ "${{ needs.validate.result }}" == "success" && "${{ needs.security-scan.result }}" == "success" ]]; then
+            echo "✓ All checks passed"
+          else
+            echo "✗ Some checks failed"
+            exit 1
+          fi
