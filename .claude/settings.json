@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__gitplus__ship|mcp__gitplus-local__ship",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/pre-ship-workflow.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|Update",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-delegate-agent.sh",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
