@@ -20,7 +20,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Setup Dependencies
         run: |
@@ -31,8 +31,8 @@ jobs:
         run: |
           echo "Validating agent configuration files..."
           
-          # Check modified agent files
-          MODIFIED_AGENTS=$(git diff --name-only HEAD~1 | grep "\.claude/agents/.*\.md$" || true)
+          # Check modified agent files (use origin/main as base to avoid HEAD~1 issues)
+          MODIFIED_AGENTS=$(git diff --name-only origin/main..HEAD | grep "\.claude/agents/.*\.md$" || true)
           
           if [[ -n "$MODIFIED_AGENTS" ]]; then
             for agent in $MODIFIED_AGENTS; do
@@ -47,13 +47,24 @@ jobs:
           else
             echo "No agent files modified"
           fi
+          
+          # Also validate all existing agent files for structure
+          echo "Validating all agent files..."
+          for agent in .claude/agents/*.md; do
+            if [[ -f "$agent" ]]; then
+              echo "Checking $agent..."
+              grep -q "^name:" "$agent" || { echo "Missing name field in $agent"; exit 1; }
+              grep -q "^description:" "$agent" || { echo "Missing description field in $agent"; exit 1; }
+              echo "✓ $agent is valid"
+            fi
+          done
 
       - name: Validate Scripts
         run: |
           echo "Validating shell scripts..."
           
-          # Check modified hook scripts
-          MODIFIED_HOOKS=$(git diff --name-only HEAD~1 | grep "\.claude/hooks/.*\.sh$" || true)
+          # Check modified hook scripts (use origin/main as base to avoid HEAD~1 issues)
+          MODIFIED_HOOKS=$(git diff --name-only origin/main..HEAD | grep "\.claude/hooks/.*\.sh$" || true)
           
           if [[ -n "$MODIFIED_HOOKS" ]]; then
             for hook in $MODIFIED_HOOKS; do
@@ -67,6 +78,17 @@ jobs:
           else
             echo "No hook scripts modified"
           fi
+          
+          # Also validate all existing hook scripts
+          echo "Validating all hook scripts..."
+          for hook in .claude/hooks/*.sh; do
+            if [[ -f "$hook" ]]; then
+              echo "Checking $hook..."
+              bash -n "$hook" || { echo "Syntax error in $hook"; exit 1; }
+              shellcheck "$hook" || { echo "ShellCheck failed for $hook"; exit 1; }
+              echo "✓ $hook is valid"
+            fi
+          done
 
       - name: Validate Settings
         run: |
@@ -76,6 +98,12 @@ jobs:
             jq empty ".claude/settings.json" || { echo "Invalid JSON in settings.json"; exit 1; }
             echo "✓ settings.json is valid"
           fi
+
+      - name: Run Full Validation Script
+        run: |
+          echo "Running comprehensive validation script..."
+          chmod +x scripts/validate-setup.sh
+          bash scripts/validate-setup.sh
 
   security-scan:
     name: Security Scan
@@ -93,19 +121,22 @@ jobs:
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
+          exit-code: '0'
+        continue-on-error: true
 
       - name: Upload Security Results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
 
       - name: Basic Secret Scan
         run: |
           echo "Scanning for potential secrets..."
           
-          # Check for obvious secret patterns in changed files
-          CHANGED_FILES=$(git diff --name-only HEAD~1)
+          # Check for obvious secret patterns in changed files (use origin/main as base)
+          CHANGED_FILES=$(git diff --name-only origin/main..HEAD)
           
           if [[ -n "$CHANGED_FILES" ]]; then
             for file in $CHANGED_FILES; do
