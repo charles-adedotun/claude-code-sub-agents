@@ -21,6 +21,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          
+      - name: Setup Git References
+        run: |
+          # Ensure we have proper git references for comparison
+          git fetch origin main:refs/remotes/origin/main || true
 
       - name: Setup Dependencies
         run: |
@@ -31,8 +36,8 @@ jobs:
         run: |
           echo "Validating agent configuration files..."
           
-          # Check modified agent files (use origin/main as base to avoid HEAD~1 issues)
-          MODIFIED_AGENTS=$(git diff --name-only origin/main..HEAD | grep "\.claude/agents/.*\.md$" || true)
+          # Check modified agent files (compare with main branch)
+          MODIFIED_AGENTS=$(git diff --name-only origin/main..HEAD 2>/dev/null | grep "\.claude/agents/.*\.md$" || git diff --name-only HEAD~1..HEAD | grep "\.claude/agents/.*\.md$" || true)
           
           if [[ -n "$MODIFIED_AGENTS" ]]; then
             for agent in $MODIFIED_AGENTS; do
@@ -63,8 +68,8 @@ jobs:
         run: |
           echo "Validating shell scripts..."
           
-          # Check modified hook scripts (use origin/main as base to avoid HEAD~1 issues)
-          MODIFIED_HOOKS=$(git diff --name-only origin/main..HEAD | grep "\.claude/hooks/.*\.sh$" || true)
+          # Check modified hook scripts (compare with main branch)
+          MODIFIED_HOOKS=$(git diff --name-only origin/main..HEAD 2>/dev/null | grep "\.claude/hooks/.*\.sh$" || git diff --name-only HEAD~1..HEAD | grep "\.claude/hooks/.*\.sh$" || true)
           
           if [[ -n "$MODIFIED_HOOKS" ]]; then
             for hook in $MODIFIED_HOOKS; do
@@ -113,6 +118,13 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Setup Git References
+        run: |
+          # Ensure we have proper git references for comparison
+          git fetch origin main:refs/remotes/origin/main || true
 
       - name: Run Trivy Security Scanner
         uses: aquasecurity/trivy-action@master
@@ -135,8 +147,8 @@ jobs:
         run: |
           echo "Scanning for potential secrets..."
           
-          # Check for obvious secret patterns in changed files (use origin/main as base)
-          CHANGED_FILES=$(git diff --name-only origin/main..HEAD)
+          # Check for obvious secret patterns in changed files
+          CHANGED_FILES=$(git diff --name-only origin/main..HEAD 2>/dev/null || git diff --name-only HEAD~1..HEAD || true)
           
           if [[ -n "$CHANGED_FILES" ]]; then
             for file in $CHANGED_FILES; do

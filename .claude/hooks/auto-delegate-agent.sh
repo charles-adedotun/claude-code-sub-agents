@@ -10,7 +10,8 @@ suggest_agent() {
     local filepath="$1"
     [[ -z "$filepath" ]] && return 1
     
-    local filename=$(basename "$filepath")
+    local filename
+    filename=$(basename "$filepath")
     local ext="${filename##*.}"
     
     # Frontend patterns
