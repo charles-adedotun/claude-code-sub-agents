@@ -1,74 +1,22 @@
-# Sub-Agent Ecosystem - Git Ignore File
-
-# Logs and temporary files
+# Logs
 *.log
-*.tmp
-*~
-*.backup
-*.bak
+.claude/upgrade.log
 
-# Agent suggestion logs
-.claude/agent-suggestions.log
-.claude/delegation.log
-.claude/review-context.json
-
-# Local settings (keep project settings)
-.claude/settings.local.json
-
-# OS generated files
+# OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# IDE and editor files
+# Editor
 .vscode/
 .idea/
 *.swp
-*.swo
-*~
 
-# Test artifacts
-coverage/
-.nyc_output/
-test-results/
-playwright-report/
+# Test output
+.claude/test-*
 
-# Node.js (if any JavaScript tooling is added)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Local config
+.claude/.claude-agents.json
 
-# Python (if any Python tooling is added)
-__pycache__/
-*.py[cod]
-*$py.class
-.pytest_cache/
-
-# Environment files with secrets
-.env
-.env.local
-.env.production
-.env.staging
-
-# Build artifacts
-dist/
-build/
-out/
-
-# Package manager files
-package-lock.json
-yarn.lock
-Pipfile.lock
-
-# Documentation build artifacts
-docs/_build/
-docs/site/
-
-# Temporary hook execution files
-.claude/hooks/*.tmp
-.claude/hooks/*.log
+# Backups
+*.backup
+.claude-backup-*/
