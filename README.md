@@ -1,5 +1,7 @@
 # Claude Code Sub-Agents
 
+[![CI](https://github.com/charles-adedotun/claude-code-sub-agents/actions/workflows/ci.yml/badge.svg)](https://github.com/charles-adedotun/claude-code-sub-agents/actions/workflows/ci.yml)
+
 Meta-agent system that bootstraps project-specific AI agents for Claude Code.
 
 ## Why This Exists
@@ -26,7 +28,7 @@ Each agent lives in `.claude/agents/` as a markdown file containing focused inst
 ## Quick Start
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/[YOUR-USERNAME]/claude-code-sub-agents/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/charles-adedotun/claude-code-sub-agents/main/install.sh | bash
 ```
 
 Then in your project:
