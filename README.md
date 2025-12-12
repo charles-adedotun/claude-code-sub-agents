@@ -28,7 +28,7 @@ Each agent lives in `.claude/agents/` as a markdown file containing focused inst
 ## Quick Start
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/charles-adedotun/claude-code-sub-agents/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/charles-adedotun/claude-code-sub-agents/main/init.sh | bash
 ```
 
 Then in your project:
