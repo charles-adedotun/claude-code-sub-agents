@@ -27,24 +27,38 @@ curl -fsSL "$REPO/.claude/templates/agent.template.md" -o "$DIR/.claude/template
 # Download settings
 curl -fsSL "$REPO/.claude/settings.json" -o "$DIR/.claude/settings.json"
 
-# Create minimal CLAUDE.md
-cat > "$DIR/CLAUDE.md" << 'EOF'
-# Claude Agents
+# Preserve existing CLAUDE.md or create a new one (fixes Issue #6)
+AGENTS_BLOCK=$(cat << 'EOF'
 
-## Quick Start
+## Available Claude Agents
+
+- **agent-architect**: Analyzes your project stack and generates focused sub-agents in `.claude/agents/`
+
+### Quick Start
 ```
 > Use agent-architect to set up agents for this project
 ```
 
-The agent-architect will analyze your project and create appropriate agents.
-
-## Upgrading
+### Upgrading
 ```
 > Use agent-architect to upgrade agents
 ```
 EOF
+)
+
+if [ -f "$DIR/CLAUDE.md" ]; then
+    if grep -qE "^## Available Claude Agents|^# Claude Agents" "$DIR/CLAUDE.md"; then
+        echo "ℹ️  Existing CLAUDE.md already contains a Claude Agents section — preserved untouched."
+    else
+        printf "%s\n" "$AGENTS_BLOCK" >> "$DIR/CLAUDE.md"
+        echo "✅ Appended '## Available Claude Agents' section to existing CLAUDE.md (preserved all project context)."
+    fi
+else
+    printf "# Claude Agents\n%s\n" "$AGENTS_BLOCK" > "$DIR/CLAUDE.md"
+    echo "✅ Created CLAUDE.md with Claude Agents quick start."
+fi
 
 # Create VERSION
-echo "2.0.0" > "$DIR/.claude/VERSION"
+echo "1.0.7" > "$DIR/.claude/VERSION"
 
 echo "✅ Done! Use 'agent-architect' in Claude Code to set up project-specific agents."

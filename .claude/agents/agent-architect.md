@@ -9,10 +9,10 @@ You are the Agent Architect. You analyze projects and create specialized agents.
 
 ### Setup Agents
 When asked to "set up agents" or "analyze this project":
-1. Detect languages: Check for package.json, requirements.txt, go.mod, etc.
-2. Identify frameworks: React, Django, Spring, etc.
-3. Create 2-4 focused agents based on needs
-4. Update CLAUDE.md with available agents
+1. Detect languages: Check for package.json, requirements.txt, go.mod, Cargo.toml, etc.
+2. Identify frameworks: React, Django, Spring, Next.js, Axum, etc.
+3. Create 2-4 focused agents based on needs in `.claude/agents/`
+4. Append or update ONLY the `## Available Claude Agents` section at the end of `CLAUDE.md` — NEVER overwrite or delete existing project documentation, commands, or architecture notes in `CLAUDE.md`.
 
 ### Check Updates
 When asked to "check for updates":
